@@ -44,7 +44,9 @@ from src.tasks import TASK_DEFINITIONS
 _sessions: Dict[str, Any] = {}
 
 OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-MODEL:          str = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+HF_TOKEN:       str = os.getenv("HF_TOKEN", "")
+API_BASE_URL:   str = os.getenv("API_BASE_URL", "")
+MODEL_NAME:     str = os.getenv("MODEL_NAME", "gpt-4o-mini")
 MAX_STEPS:      int = int(os.getenv("MAX_STEPS", "20"))
 
 
@@ -259,12 +261,18 @@ Example: {"type":"action","content":"verify identity"}"""
 
 
 class LLMAgent:
-    def __init__(self, model: str = MODEL):
-        if not OPENAI_API_KEY:
-            raise ValueError("OPENAI_API_KEY is not set.")
+    def __init__(self, model: str = None):
+        api_key = HF_TOKEN or OPENAI_API_KEY
+        if not api_key:
+            raise ValueError("HF_TOKEN or OPENAI_API_KEY must be set to run LLMAgent.")
+        
         from openai import OpenAI as _OAI
-        self.client = _OAI(api_key=OPENAI_API_KEY)
-        self.model  = model
+        kwargs = {"api_key": api_key}
+        if API_BASE_URL:
+            kwargs["base_url"] = API_BASE_URL
+            
+        self.client = _OAI(**kwargs)
+        self.model  = model or MODEL_NAME
 
     def next_action(self, obs: Dict) -> Dict:
         criteria  = obs.get("resolution_criteria", [])
@@ -359,17 +367,30 @@ def run_demo(task_level: str, max_steps: int = MAX_STEPS,
 
 def main():
     parser = argparse.ArgumentParser(description="IT Helpdesk OpenEnv")
-    parser.add_argument("--mode",  choices=["ui", "demo", "llm"], default="ui",
-                        help="ui=web UI  demo=heuristic CLI  llm=OpenAI CLI")
-    parser.add_argument("--task",  choices=["easy", "medium", "hard"], default="easy")
+    parser.add_argument("--mode",  choices=["ui", "demo", "llm", "auto"], default="auto",
+                        help="auto overrides to llm if hackathon evaluator vars are present")
+    parser.add_argument("--task",  choices=["easy", "medium", "hard", "all"], default="all")
     parser.add_argument("--steps", type=int, default=MAX_STEPS)
     args = parser.parse_args()
 
+    # Detect evaluating environment (Scaler injects API_BASE_URL and HF_TOKEN)
+    if args.mode == "auto":
+        if API_BASE_URL and HF_TOKEN:
+            args.mode = "llm"
+        else:
+            args.mode = "ui"
+
     if args.mode == "demo":
-        run_demo(args.task, args.steps, use_llm=False)
+        tasks_to_run = ["easy", "medium", "hard"] if args.task == "all" else [args.task]
+        for t in tasks_to_run:
+            run_demo(t, args.steps, use_llm=False)
+            print()
 
     elif args.mode == "llm":
-        run_demo(args.task, args.steps, use_llm=True)
+        tasks_to_run = ["easy", "medium", "hard"] if args.task == "all" else [args.task]
+        for t in tasks_to_run:
+            run_demo(t, args.steps, use_llm=True)
+            print()
 
     else:  # ui
         print("Launching IT Helpdesk OpenEnv on http://localhost:7860")
