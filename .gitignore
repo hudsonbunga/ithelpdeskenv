@@ -19,7 +19,6 @@ pip-wheel-metadata/
 venv/
 env/
 .uv/
-uv.lock
 
 # Testing
 .pytest_cache/
