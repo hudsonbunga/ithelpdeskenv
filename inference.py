@@ -160,7 +160,10 @@ fast_app = FastAPI(title="IT Helpdesk OpenEnv API", version="1.0.0")
 @fast_app.post("/env/reset")
 @fast_app.post("/reset")
 async def api_reset(request: Request):
-    body   = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
     result = env_reset(body.get("task_level", "easy"))
     return JSONResponse(content=result)
 
@@ -168,7 +171,10 @@ async def api_reset(request: Request):
 @fast_app.post("/env/step")
 @fast_app.post("/step")
 async def api_step(request: Request):
-    body   = await request.json()
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
     result = env_step(body.get("session_id", ""), body.get("action", {}))
     return JSONResponse(content=result)
 
