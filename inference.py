@@ -330,7 +330,7 @@ def run_demo(task_level: str, max_steps: int = MAX_STEPS,
 
     if use_llm:
         agent: Any = LLMAgent()
-        print(f"[LLM Agent] model={MODEL}")
+        print(f"[LLM Agent] model={agent.model}")
     else:
         h = HeuristicAgent()
         h.start(issue_type)
