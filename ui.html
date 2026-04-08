@@ -214,6 +214,25 @@ pre.spec-pre{
   color:var(--terminal-txt);overflow-x:auto;white-space:pre;line-height:1.7;
 }
 
+/* ── Puter signin banner ──────────────────────────────────────────────── */
+#puter-banner{
+  display:none;
+  margin-bottom:16px;
+  background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);
+  border-radius:12px;padding:14px 18px;
+  font-size:13px;line-height:1.6;
+  color:#fcd34d;
+}
+#puter-banner strong{color:#fbbf24;display:block;margin-bottom:4px;font-size:14px}
+#puter-banner a{
+  color:#6366f1;text-decoration:underline;font-weight:700;
+  word-break:break-all;
+}
+#puter-banner .heuristic-note{
+  margin-top:8px;font-size:12px;
+  color:rgba(251,191,36,0.6);
+}
+
 /* ── Footer ───────────────────────────────────────────────────────────── */
 footer{
   margin-top:40px;padding:24px 0;
@@ -277,6 +296,14 @@ footer{
       <span class="badge"><span class="dot dot-g"></span>[START]/[STEP]/[END] Logs</span>
       <span class="badge"><span class="dot dot-g"></span>21 Tests Passing</span>
     </div>
+  </div>
+
+  <!-- Puter signin banner (shown when popup is blocked in iframe) -->
+  <div id="puter-banner">
+    <strong>⚠️ GPT-4o unavailable in embedded view</strong>
+    puter.js needs a popup to sign in, which is blocked inside Hugging Face's iframe.<br>
+    👉 <a id="full-tab-link" href="https://hudsonbunga-ithelpdeskenv.hf.space" target="_blank">Open in a full browser tab</a> for free GPT-4o — no API key needed.<br>
+    <span class="heuristic-note">▸ In the meantime the heuristic fallback agent will still run the episode for you.</span>
   </div>
 
   <!-- Controls -->
@@ -397,6 +424,45 @@ function cycleTheme() {
       document.documentElement.setAttribute('data-theme', resolveTheme('system'));
     }
   });
+})();
+
+// ── Puter iframe detection & sign-in check ───────────────────────────────
+
+var _puterAvailable = false; // set to true after successful auth check
+
+(function checkPuterAuth() {
+  // Derive the full-tab URL from the current location
+  var fullTabUrl = window.location.href;
+  // If we are inside an iframe, window.top !== window.self
+  var inIframe = (function() {
+    try { return window.self !== window.top; } catch(e) { return true; }
+  })();
+
+  var banner = document.getElementById('puter-banner');
+  var link   = document.getElementById('full-tab-link');
+
+  // Update the link to the actual runtime URL (correct for any domain)
+  if (link) link.href = fullTabUrl.split('?')[0];
+
+  if (!inIframe) {
+    // Running in a full tab — try silent puter sign-in
+    if (typeof puter !== 'undefined' && puter.auth) {
+      puter.auth.signIn().then(function() {
+        _puterAvailable = true;
+      }).catch(function() {
+        // Not signed in but popups work — puter will prompt on first use
+        _puterAvailable = true;
+      });
+    } else {
+      // puter script still loading — mark available optimistically
+      _puterAvailable = true;
+    }
+    return;
+  }
+
+  // We are in an iframe — puter auth popup will be blocked
+  // Show the banner and keep _puterAvailable = false
+  if (banner) banner.style.display = 'block';
 })();
 
 // ── Spec accordion ────────────────────────────────────────────────────────
@@ -623,18 +689,22 @@ async function runAgentLoop() {
       var prompt = buildPrompt(obs);
       var action = null;
 
-      // Try puter.js
-      try {
-        var aiResp = await puter.ai.chat(
-          SYSTEM_PROMPT + '\n\n' + prompt,
-          {model: 'gpt-4o-mini'}
-        );
-        var rawText = typeof aiResp === 'string' ? aiResp
-          : (aiResp && ((aiResp.message && aiResp.message.content) || aiResp.content)) || '';
-        action = extractJSON(rawText);
-        if (!action) addLog('  [WARN] Could not parse AI response: ' + rawText.slice(0,60), 'warn');
-      } catch(e) {
-        addLog('  [INFO] puter.ai unavailable, using heuristic fallback', 'warn');
+      // Try puter.js (only if not blocked in iframe)
+      if (_puterAvailable && typeof puter !== 'undefined' && puter.ai) {
+        try {
+          var aiResp = await puter.ai.chat(
+            SYSTEM_PROMPT + '\n\n' + prompt,
+            {model: 'gpt-4o-mini'}
+          );
+          var rawText = typeof aiResp === 'string' ? aiResp
+            : (aiResp && ((aiResp.message && aiResp.message.content) || aiResp.content)) || '';
+          action = extractJSON(rawText);
+          if (!action) addLog('  [WARN] Could not parse AI response: ' + rawText.slice(0,60), 'warn');
+        } catch(e) {
+          addLog('  [INFO] puter.ai unavailable, using heuristic fallback', 'warn');
+        }
+      } else if (!_puterAvailable) {
+        // Silently use heuristic — banner already explains why
       }
 
       // Heuristic fallback
