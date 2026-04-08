@@ -240,4 +240,4 @@ docker run -p 7860:7860 ithelpdeskenv
 
 ## License
 
-MIT © 2024 Hudson Bunga
+REC © 2024 Hudson Bunga
