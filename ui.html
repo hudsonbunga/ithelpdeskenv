@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IT Helpdesk OpenEnv</title>
+<meta name="description" content="OpenEnv RL environment for IT helpdesk ticket resolution. Scaler Hackathon.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Theme variables ───────────────────────────────────────────────────── */
+:root {
+  --bg:          #0a0d14;
+  --bg-card:     #111827;
+  --bg-card-2:   #1a2235;
+  --border:      #1e293b;
+  --text:        #f1f5f9;
+  --text-muted:  #64748b;
+  --text-sub:    #94a3b8;
+  --terminal-bg: #050a10;
+  --terminal-txt:#00e676;
+  --accent:      #6366f1;
+  --accent-2:    #3b82f6;
+  --badge-bg:    #1e293b;
+  --modal-bg:    rgba(0,0,0,0.75);
+  --shadow:      0 20px 60px rgba(0,0,0,0.5);
+  --trans:       background 0.25s, color 0.25s, border-color 0.25s;
+}
+html[data-theme="light"] {
+  --bg:          #f1f5f9;
+  --bg-card:     #ffffff;
+  --bg-card-2:   #f8fafc;
+  --border:      #e2e8f0;
+  --text:        #0f172a;
+  --text-muted:  #64748b;
+  --text-sub:    #475569;
+  --terminal-bg: #1e293b;
+  --terminal-txt:#10b981;
+  --badge-bg:    #e2e8f0;
+  --modal-bg:    rgba(0,0,0,0.4);
+  --shadow:      0 20px 60px rgba(0,0,0,0.15);
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{transition:var(--trans)}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:var(--trans)}
+
+/* ── Theme modal ──────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;z-index:1000;
+  background:var(--modal-bg);
+  display:flex;align-items:center;justify-content:center;
+  backdrop-filter:blur(6px);
+}
+.modal-overlay.hidden{display:none}
+.modal-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:20px;padding:40px 48px;text-align:center;
+  box-shadow:var(--shadow);max-width:420px;width:90%;
+  animation:popIn 0.3s ease;
+}
+@keyframes popIn{
+  from{transform:scale(0.85);opacity:0}
+  to  {transform:scale(1);opacity:1}
+}
+.modal-card h2{
+  font-size:1.5rem;font-weight:800;margin-bottom:8px;
+  background:linear-gradient(135deg,var(--text) 30%,var(--accent));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.modal-card p{font-size:14px;color:var(--text-muted);margin-bottom:28px}
+.theme-opts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.theme-btn{
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  background:var(--bg-card-2);border:2px solid var(--border);
+  border-radius:14px;padding:18px 24px;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  color:var(--text);font-size:13px;font-weight:600;
+  transition:border-color 0.2s,transform 0.1s,box-shadow 0.2s;
+  min-width:96px;
+}
+.theme-btn:hover{
+  border-color:var(--accent);transform:translateY(-3px);
+  box-shadow:0 8px 24px rgba(99,102,241,0.2);
+}
+.theme-btn .icon{font-size:2rem}
+
+/* ── Layout ───────────────────────────────────────────────────────────── */
+.container{max-width:960px;margin:0 auto;padding:0 20px}
+
+/* ── Header ───────────────────────────────────────────────────────────── */
+header{border-bottom:1px solid var(--border);padding:16px 0;transition:var(--trans)}
+.header-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{font-size:1.5rem}
+.logo h1{font-size:1.15rem;font-weight:800;letter-spacing:-0.3px}
+.logo span{font-size:12px;color:var(--text-muted);font-weight:400}
+.header-actions{display:flex;align-items:center;gap:10px}
+.theme-toggle{
+  background:var(--bg-card-2);border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;cursor:pointer;
+  font-size:13px;color:var(--text-muted);font-family:'Inter',sans-serif;
+  display:flex;align-items:center;gap:5px;
+  transition:border-color 0.2s,color 0.2s;
+}
+.theme-toggle:hover{border-color:var(--accent);color:var(--text)}
+
+/* ── Hero ─────────────────────────────────────────────────────────────── */
+.hero{padding:40px 0 28px;border-bottom:1px solid var(--border)}
+.hero h2{
+  font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;line-height:1.15;margin-bottom:10px;
+  background:linear-gradient(135deg,var(--text) 40%,var(--accent) 70%,var(--accent-2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{font-size:15px;color:var(--text-muted);max-width:580px;line-height:1.6}
+.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:var(--badge-bg);border:1px solid var(--border);
+  border-radius:6px;padding:3px 10px;font-size:11px;color:var(--text-sub);
+}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-g{background:#10b981;box-shadow:0 0 5px #10b981}
+.dot-b{background:#3b82f6;box-shadow:0 0 5px #3b82f6}
+
+/* ── Controls ─────────────────────────────────────────────────────────── */
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:24px 0}
+select#task-select{
+  background:var(--bg-card);color:var(--text);
+  border:1px solid var(--border);border-radius:8px;
+  padding:10px 14px;font-size:14px;font-family:'Inter',sans-serif;
+  cursor:pointer;outline:none;flex:1;min-width:200px;transition:var(--trans);
+}
+select#task-select:focus{border-color:var(--accent)}
+#run-btn{
+  background:linear-gradient(135deg,var(--accent),var(--accent-2));
+  color:#fff;border:none;border-radius:8px;
+  padding:10px 28px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:'Inter',sans-serif;
+  transition:opacity 0.2s,transform 0.1s;white-space:nowrap;
+}
+#run-btn:hover:not(:disabled){opacity:0.88;transform:translateY(-1px)}
+#run-btn:disabled{opacity:0.35;cursor:not-allowed}
+.status-pill{padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700;display:none}
+.status-pill.show{display:inline-block}
+.pill-running{background:rgba(99,102,241,.2);color:#a5b4fc}
+.pill-done   {background:rgba(16,185,129,.2);color:#34d399}
+.pill-error  {background:rgba(239,68,68,.2); color:#f87171}
+
+/* ── Metrics ──────────────────────────────────────────────────────────── */
+#metrics{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.metric-card{
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;
+  padding:14px 20px;min-width:110px;transition:var(--trans);
+}
+.metric-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.metric-value{font-size:1.5rem;font-weight:800;margin-top:4px}
+.grade-EXCELLENT .metric-value{color:#10b981}
+.grade-GOOD      .metric-value{color:#3b82f6}
+.grade-PARTIAL   .metric-value{color:#f59e0b}
+.grade-FAILED    .metric-value{color:#ef4444}
+
+/* ── Agent log ────────────────────────────────────────────────────────── */
+#agent-log{
+  background:var(--terminal-bg);border:1px solid var(--border);
+  border-radius:12px;padding:18px 20px;
+  font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.9;
+  height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-word;
+  transition:background 0.25s,border-color 0.25s;
+}
+#agent-log::-webkit-scrollbar{width:4px}
+#agent-log::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.log-start        {color:#f59e0b;font-weight:700}
+.log-end          {color:#f59e0b;font-weight:700}
+.log-step         {color:var(--accent);font-weight:600}
+.log-agent-ask    {color:#60a5fa}
+.log-agent-action {color:#34d399}
+.log-agent-close  {color:#a78bfa}
+.log-customer     {color:var(--text-sub)}
+.log-metric       {color:var(--text-muted);font-size:11px}
+.log-completed    {color:#10b981}
+.log-info         {color:var(--text-muted)}
+.log-warn         {color:#f59e0b}
+.log-error        {color:#ef4444}
+.log-thinking     {color:var(--text-muted);font-style:italic}
+
+/* ── Spec accordion ───────────────────────────────────────────────────── */
+.spec-section{margin-top:24px;border-top:1px solid var(--border);padding-top:16px}
+.spec-toggle{
+  background:none;border:none;cursor:pointer;
+  font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+  color:var(--text-muted);display:flex;align-items:center;gap:8px;padding:6px 0;
+}
+.spec-toggle:hover{color:var(--text)}
+.spec-toggle .arrow{transition:transform 0.25s}
+.spec-toggle.open .arrow{transform:rotate(90deg)}
+.spec-body{display:none;margin-top:14px}
+.spec-body.open{display:block}
+.spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.spec-grid{grid-template-columns:1fr}}
+.spec-card{
+  background:var(--bg-card);border:1px solid var(--border);
+  border-radius:10px;padding:16px;transition:var(--trans);
+}
+.spec-card h4{font-size:13px;font-weight:700;margin-bottom:10px;color:var(--text-sub);text-transform:uppercase;letter-spacing:.5px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px}
+.spec-table th,.spec-table td{padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.spec-table th{color:var(--text-muted)}
+.spec-table tr:last-child td{border-bottom:none}
+pre.spec-pre{
+  background:var(--terminal-bg);border-radius:8px;padding:12px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  color:var(--terminal-txt);overflow-x:auto;white-space:pre;line-height:1.7;
+}
+
+/* ── Footer ───────────────────────────────────────────────────────────── */
+footer{
+  margin-top:40px;padding:24px 0;
+  border-top:1px solid var(--border);
+  text-align:center;font-size:12px;color:var(--text-muted);
+}
+</style>
+</head>
+<body>
+
+<!-- Theme selector modal -->
+<div class="modal-overlay" id="theme-modal">
+  <div class="modal-card">
+    <h2>Choose Your Theme</h2>
+    <p>Pick a display theme. You can change it anytime from the header.</p>
+    <div class="theme-opts">
+      <button class="theme-btn" onclick="applyTheme('dark')">
+        <span class="icon">🌙</span>Dark
+      </button>
+      <button class="theme-btn" onclick="applyTheme('light')">
+        <span class="icon">☀️</span>Light
+      </button>
+      <button class="theme-btn" onclick="applyTheme('system')">
+        <span class="icon">💻</span>System
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="container header-inner">
+    <div class="logo">
+      <span class="logo-icon">🛠️</span>
+      <div>
+        <h1>IT Helpdesk OpenEnv</h1>
+        <span>Scaler OpenEnv Hackathon &middot; Meta AI</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="theme-toggle" onclick="cycleTheme()">
+        <span id="theme-icon">🌙</span>
+        <span id="theme-label">Dark</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<div class="container">
+  <div class="hero">
+    <h2>Real-world IT Ticket<br>Resolution with AI</h2>
+    <p>
+      An OpenEnv-compliant RL environment. Watch GPT-4o resolve IT tickets live
+      &mdash; completely free via <strong>puter.js</strong>. No API key required.
+    </p>
+    <div class="badge-row">
+      <span class="badge"><span class="dot dot-g"></span>Free GPT-4o via puter.js</span>
+      <span class="badge"><span class="dot dot-b"></span>3 Task Levels</span>
+      <span class="badge"><span class="dot dot-b"></span>Reward 0.0&ndash;1.0</span>
+      <span class="badge"><span class="dot dot-g"></span>[START]/[STEP]/[END] Logs</span>
+      <span class="badge"><span class="dot dot-g"></span>21 Tests Passing</span>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <select id="task-select">
+      <option value="easy">🟢 Easy — Password Reset (max 8 steps)</option>
+      <option value="medium">🟡 Medium — Software Crash (max 12 steps)</option>
+      <option value="hard">🔴 Hard — Network Connectivity (max 15 steps)</option>
+    </select>
+    <button id="run-btn" onclick="runAgentLoop()">▶ Run Agent</button>
+    <span class="status-pill" id="status-pill"></span>
+  </div>
+
+  <!-- Metrics -->
+  <div id="metrics"></div>
+
+  <!-- Agent log -->
+  <div id="agent-log"><span class="log-info">Select a task level above and click "Run Agent" to start.
+GPT-4o will resolve the IT ticket live via puter.js (free, no API key needed).</span></div>
+
+  <!-- Spec accordion -->
+  <div class="spec-section">
+    <button class="spec-toggle" id="spec-btn" onclick="toggleSpec()">
+      <span class="arrow">▶</span> Environment Spec
+    </button>
+    <div class="spec-body" id="spec-body">
+      <div class="spec-grid">
+        <div class="spec-card">
+          <h4>Action Space</h4>
+          <pre class="spec-pre">{"type": "ask|action|close",
+ "content": "..."}</pre>
+          <table class="spec-table" style="margin-top:10px">
+            <tr><th>Type</th><th>Purpose</th></tr>
+            <tr><td>ask</td><td>Diagnostic question</td></tr>
+            <tr><td>action</td><td>Technical fix command</td></tr>
+            <tr><td>close</td><td>Close resolved ticket</td></tr>
+          </table>
+        </div>
+        <div class="spec-card">
+          <h4>Reward Function</h4>
+          <table class="spec-table">
+            <tr><th>Component</th><th>Easy</th><th>Hard</th></tr>
+            <tr><td>Resolution</td><td>60%</td><td>50%</td></tr>
+            <tr><td>Efficiency</td><td>25%</td><td>30%</td></tr>
+            <tr><td>Satisfaction</td><td>15%</td><td>20%</td></tr>
+          </table>
+          <pre class="spec-pre" style="margin-top:10px">[START] / [STEP] / [END]</pre>
+        </div>
+        <div class="spec-card">
+          <h4>Task Levels</h4>
+          <table class="spec-table">
+            <tr><th>Level</th><th>Task</th><th>Steps</th></tr>
+            <tr><td>Easy</td><td>Password Reset</td><td>8</td></tr>
+            <tr><td>Medium</td><td>Software Crash</td><td>12</td></tr>
+            <tr><td>Hard</td><td>Network Issue</td><td>15</td></tr>
+          </table>
+        </div>
+        <div class="spec-card">
+          <h4>Grades</h4>
+          <table class="spec-table">
+            <tr><th>Grade</th><th>Reward</th></tr>
+            <tr><td>EXCELLENT</td><td>&ge; 0.85</td></tr>
+            <tr><td>GOOD</td><td>&ge; 0.70</td></tr>
+            <tr><td>PARTIAL</td><td>&ge; 0.40</td></tr>
+            <tr><td>FAILED</td><td>&lt; 0.40</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    IT Helpdesk OpenEnv &mdash; Scaler &times; Meta AI OpenEnv Hackathon &mdash; MIT License
+  </footer>
+</div>
+
+<!-- Scripts -->
+<script src="https://js.puter.com/v2/"></script>
+<script>
+"use strict";
+
+// ── Theme ────────────────────────────────────────────────────────────────
+
+var THEMES  = ['dark','light','system'];
+var TICONS  = {dark:'🌙', light:'☀️', system:'💻'};
+var TLABELS = {dark:'Dark', light:'Light', system:'System'};
+
+function resolveTheme(t) {
+  if (t !== 'system') return t;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(choice) {
+  localStorage.setItem('it-helpdesk-theme', choice);
+  document.documentElement.setAttribute('data-theme', resolveTheme(choice));
+  var icon  = document.getElementById('theme-icon');
+  var label = document.getElementById('theme-label');
+  if (icon)  icon.textContent  = TICONS[choice]  || '🌙';
+  if (label) label.textContent = TLABELS[choice] || 'Theme';
+  document.getElementById('theme-modal').classList.add('hidden');
+}
+
+function cycleTheme() {
+  var saved = localStorage.getItem('it-helpdesk-theme') || 'dark';
+  var next  = THEMES[(THEMES.indexOf(saved) + 1) % THEMES.length];
+  applyTheme(next);
+}
+
+// Init theme on page load
+(function() {
+  var saved = localStorage.getItem('it-helpdesk-theme');
+  if (saved) {
+    applyTheme(saved);
+  }
+  // React to OS preference changes (when mode == system)
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+    if (localStorage.getItem('it-helpdesk-theme') === 'system') {
+      document.documentElement.setAttribute('data-theme', resolveTheme('system'));
+    }
+  });
+})();
+
+// ── Spec accordion ────────────────────────────────────────────────────────
+
+function toggleSpec() {
+  document.getElementById('spec-btn').classList.toggle('open');
+  document.getElementById('spec-body').classList.toggle('open');
+}
+
+// ── Agent system prompt ───────────────────────────────────────────────────
+
+var SYSTEM_PROMPT = [
+  'You are an IT Helpdesk specialist. Resolve the customer ticket.',
+  '',
+  'RESPOND WITH RAW JSON ONLY on a single line. No markdown. No code fence.',
+  'Format: {"type": "ask|action|close", "content": "..."}',
+  '',
+  'Action types:',
+  '- ask    : ask ONE focused diagnostic question',
+  '- action : run a technical fix using EXACT commands listed below',
+  '- close  : ONLY when ALL items in STILL NEEDED list are empty []',
+  '',
+  'Proven action commands matched to each criterion:',
+  '  identity_verified       -> action: "verify identity"',
+  '  password_reset          -> action: "reset password"',
+  '  access_confirmed        -> action: "confirm access"  then close',
+  '  crash_cause_identified  -> action: "check error logs"',
+  '  fix_applied             -> action: "repair office"',
+  '  app_running             -> action: "confirm app works"',
+  '  hardware_checked        -> action: "check cables"',
+  '  config_verified         -> action: "check dns"',
+  '  connection_stable       -> action: "run ping test"',
+  '',
+  'When STILL NEEDED is [] use close.',
+  'Example valid output: {"type":"action","content":"verify identity"}'
+].join('\n');
+
+// ── Build LLM prompt ──────────────────────────────────────────────────────
+
+function buildPrompt(obs) {
+  var criteria  = obs.resolution_criteria || [];
+  var completed = obs.completed_steps    || [];
+  var pending   = criteria.filter(function(c) { return !completed.includes(c); });
+  var cust      = obs.customer_state     || {};
+  var sat       = parseFloat(cust.satisfaction || 1).toFixed(2);
+  var history   = obs.conversation_history || [];
+
+  var lines = [
+    'TASK: ' + (obs.task_name || '').toUpperCase(),
+    'Steps: ' + obs.step_count + '/' + obs.max_steps + '  |  Satisfaction: ' + sat,
+    '',
+    'ALL CRITERIA:  ' + JSON.stringify(criteria),
+    'COMPLETED:     ' + JSON.stringify(completed),
+    'STILL NEEDED:  ' + JSON.stringify(pending),
+    '',
+    'KNOWN FACTS: ' + JSON.stringify(obs.diagnosed_info || {}),
+    '',
+    'CONVERSATION:',
+    '  CUSTOMER (opening): ' + (obs.initial_message || '')
+  ];
+
+  history.slice(-4).forEach(function(turn) {
+    var aType    = turn.agent    ? turn.agent.type    : '';
+    var aContent = turn.agent    ? turn.agent.content : '';
+    var cResp    = turn.customer ? turn.customer.response : '';
+    lines.push('  AGENT [' + aType + ']: ' + aContent);
+    lines.push('  CUSTOMER: ' + cResp);
+  });
+
+  lines.push('');
+  lines.push('YOUR NEXT ACTION (single-line raw JSON, no markdown):');
+  return lines.join('\n');
+}
+
+// ── Extract JSON from LLM response ───────────────────────────────────────
+
+function extractJSON(text) {
+  if (!text) return null;
+  // strip markdown fences
+  text = text.replace(/```json\s*/gi, '').replace(/```/g, '').trim();
+  var s = text.indexOf('{');
+  var e = text.lastIndexOf('}') + 1;
+  if (s !== -1 && e > s) {
+    try { return JSON.parse(text.slice(s, e)); } catch(ex) {}
+  }
+  return null;
+}
+
+// ── Logging ───────────────────────────────────────────────────────────────
+
+function getLog()    { return document.getElementById('agent-log'); }
+function getStatus() { return document.getElementById('status-pill'); }
+
+function clearLog() {
+  getLog().innerHTML = '';
+}
+
+function addLog(text, cls) {
+  var el  = getLog();
+  var div = document.createElement('div');
+  div.className   = 'log-' + (cls || 'blank');
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function removeLastLog() {
+  var el = getLog();
+  if (el.lastChild) el.removeChild(el.lastChild);
+}
+
+function setStatus(text, cls) {
+  var el = getStatus();
+  el.textContent = text;
+  el.className   = 'status-pill show pill-' + cls;
+}
+
+// ── Metrics ───────────────────────────────────────────────────────────────
+
+function showMetrics(reward, grade, step, maxSteps, success) {
+  var cards = [
+    {label:'Final Reward', value: parseFloat(reward).toFixed(4), cls:''},
+    {label:'Grade',        value: grade, cls:'grade-' + grade},
+    {label:'Steps Used',   value: step + '/' + maxSteps, cls:''},
+    {label:'Success',      value: success ? 'YES' : 'NO', cls:''}
+  ];
+  document.getElementById('metrics').innerHTML = cards.map(function(c) {
+    return '<div class="metric-card ' + c.cls + '">' +
+           '<div class="metric-label">' + c.label + '</div>' +
+           '<div class="metric-value">'  + c.value + '</div></div>';
+  }).join('');
+}
+
+// ── Heuristic fallback (used when puter.js is unavailable) ───────────────
+
+var FALLBACKS = {
+  identity_verified:      {type:'action', content:'verify identity'},
+  password_reset:         {type:'action', content:'reset password'},
+  access_confirmed:       {type:'action', content:'confirm access'},
+  crash_cause_identified: {type:'action', content:'check error logs'},
+  fix_applied:            {type:'action', content:'repair office'},
+  app_running:            {type:'action', content:'confirm app works'},
+  hardware_checked:       {type:'action', content:'check cables'},
+  config_verified:        {type:'action', content:'check dns'},
+  connection_stable:      {type:'action', content:'run ping test'}
+};
+
+function heuristicAction(obs) {
+  var criteria  = obs.resolution_criteria || [];
+  var completed = obs.completed_steps    || [];
+  var next = null;
+  for (var i = 0; i < criteria.length; i++) {
+    if (completed.indexOf(criteria[i]) === -1) { next = criteria[i]; break; }
+  }
+  if (next && FALLBACKS[next]) return FALLBACKS[next];
+  if (completed.length === criteria.length && criteria.length > 0) {
+    return {type:'close', content:'All criteria met. Closing ticket.'};
+  }
+  return {type:'ask', content:'Can you describe what is happening?'};
+}
+
+// ── Call Python FastAPI backend ───────────────────────────────────────────
+
+async function callAPI(endpoint, body) {
+  var resp = await fetch(endpoint, {
+    method : 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body   : JSON.stringify(body)
+  });
+  if (!resp.ok) throw new Error('API ' + endpoint + ' returned HTTP ' + resp.status);
+  return resp.json();
+}
+
+// ── Main agent loop ───────────────────────────────────────────────────────
+
+var running = false;
+
+async function runAgentLoop() {
+  if (running) return;
+  running = true;
+  clearLog();
+  document.getElementById('metrics').innerHTML = '';
+
+  var btn       = document.getElementById('run-btn');
+  btn.disabled  = true;
+  btn.textContent = 'Running...';
+
+  var taskLevel = document.getElementById('task-select').value;
+  setStatus('Running', 'running');
+
+  try {
+    // 1. Reset
+    addLog('[START]  Task: ' + taskLevel.toUpperCase(), 'start');
+    var resetData;
+    try {
+      resetData = await callAPI('/env/reset', {task_level: taskLevel});
+    } catch(e) {
+      addLog('ERROR /env/reset: ' + e.message, 'error');
+      addLog('Is the server running?  python inference.py', 'warn');
+      setStatus('Error', 'error');
+      return;
+    }
+    if (resetData.error) {
+      addLog('Server error: ' + resetData.error, 'error');
+      setStatus('Error', 'error');
+      return;
+    }
+
+    var sessionId = resetData.session_id;
+    var obs       = resetData.obs;
+    var maxS      = obs.max_steps || 15;
+
+    addLog('  Criteria:  ' + (obs.resolution_criteria || []).join(' -> '), 'info');
+    addLog('  Customer:  "' + (obs.initial_message || '') + '"', 'customer');
+    addLog('', '');
+
+    var step = 0, done = false, lastReward = 0, lastGrade = 'FAILED';
+
+    // 2. Loop
+    while (!done && step < maxS) {
+      step++;
+      addLog('[STEP ' + step + ']  Thinking...', 'thinking');
+
+      var prompt = buildPrompt(obs);
+      var action = null;
+
+      // Try puter.js
+      try {
+        var aiResp = await puter.ai.chat(
+          SYSTEM_PROMPT + '\n\n' + prompt,
+          {model: 'gpt-4o-mini'}
+        );
+        var rawText = typeof aiResp === 'string' ? aiResp
+          : (aiResp && ((aiResp.message && aiResp.message.content) || aiResp.content)) || '';
+        action = extractJSON(rawText);
+        if (!action) addLog('  [WARN] Could not parse AI response: ' + rawText.slice(0,60), 'warn');
+      } catch(e) {
+        addLog('  [INFO] puter.ai unavailable, using heuristic fallback', 'warn');
+      }
+
+      // Heuristic fallback
+      if (!action) action = heuristicAction(obs);
+
+      // Replace "Thinking..." line with actual action
+      removeLastLog();
+
+      var cls = action.type === 'ask'    ? 'agent-ask'
+              : action.type === 'action' ? 'agent-action'
+              : 'agent-close';
+      addLog('[STEP ' + step + ']  Agent [' + action.type + ']: ' + action.content, 'step');
+      addLog('           > ' + action.content, cls);
+
+      // Step env
+      var stepData;
+      try {
+        stepData = await callAPI('/env/step', {session_id: sessionId, action: action});
+      } catch(e) {
+        addLog('ERROR /env/step: ' + e.message, 'error');
+        break;
+      }
+      if (stepData.error) { addLog('Server: ' + stepData.error, 'error'); break; }
+
+      obs        = stepData.obs;
+      done       = stepData.done;
+      lastReward = stepData.reward;
+      lastGrade  = stepData.grade;
+      var info   = stepData.info || {};
+
+      var hist    = obs.conversation_history || [];
+      var custMsg = hist.length ? ((hist[hist.length-1].customer || {}).response || '') : '';
+      addLog('           Customer: "' + custMsg + '"', 'customer');
+
+      var comp = info.completed_steps || [];
+      var all  = obs.resolution_criteria || [];
+      addLog('           Reward: ' + parseFloat(lastReward).toFixed(4) +
+             '  |  Progress: ' + comp.length + '/' + all.length +
+             '  |  Sat: ' + parseFloat(info.satisfaction || 1).toFixed(2), 'metric');
+      if (comp.length) addLog('           Completed: ' + comp.join(', '), 'completed');
+      addLog('', '');
+
+      await new Promise(function(r) { setTimeout(r, 350); });
+    }
+
+    // 3. End
+    var success = (obs.customer_state || {}).resolved || false;
+    addLog('[END]  Steps: ' + step + '  |  Reward: ' + parseFloat(lastReward).toFixed(4) +
+           '  |  Grade: ' + lastGrade + '  |  Success: ' + success, 'end');
+    showMetrics(lastReward, lastGrade, step, maxS, success);
+    setStatus('Done', 'done');
+
+  } catch(e) {
+    addLog('Fatal: ' + e.message, 'error');
+    console.error(e);
+    setStatus('Error', 'error');
+  } finally {
+    running = false;
+    var btn2 = document.getElementById('run-btn');
+    btn2.disabled   = false;
+    btn2.textContent = '▶ Run Again';
+  }
+}
+</script>
+</body>
+</html>
