@@ -13,6 +13,7 @@ dependencies = [
     "gymnasium>=0.29.0",
     "numpy>=1.24.0",
     "python-dotenv>=1.0.0",
+    "openenv-core>=0.2.0",
 ]
 
 [project.optional-dependencies]
@@ -23,6 +24,7 @@ dev = [
 
 [project.scripts]
 it-helpdesk-env = "inference:main"
+server = "inference:main"
 
 [tool.pytest.ini_options]
 testpaths    = ["tests"]
@@ -32,5 +34,6 @@ python_functions = ["test_*"]
 
 [dependency-groups]
 dev = [
+    "openenv-core[cli]>=0.2.3",
     "pytest>=8.0.0",
 ]
