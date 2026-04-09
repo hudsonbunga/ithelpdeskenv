@@ -199,7 +199,7 @@ class ITHelpdeskEnv(gym.Env):
             weights["satisfaction"] * satisfaction_score
         )
 
-        return round(min(1.0, max(0.0, reward)), 4)
+        return round(min(0.9999, max(0.0001, reward)), 4)
 
     def render(self, mode: str = "human") -> Optional[str]:
         """Render the current conversation state."""
