@@ -129,8 +129,8 @@ class CustomerSimulator:
         self.issue_type: str = task["issue_type"]
         self.required_steps: List[str] = list(task["resolution_criteria"])
         self.completed_steps: List[str] = []
-        self.progress: float = 0.0
-        self.satisfaction: float = 1.0
+        self.progress: float = 0.01
+        self.satisfaction: float = 0.99
         self.resolved: bool = False
         self.resolution_status: str = "open"
         self._step_unlock_map = self._build_unlock_map()
@@ -153,7 +153,7 @@ class CustomerSimulator:
         elif action_type == "close":
             return self._handle_close(content)
         else:
-            self.satisfaction = max(0.1, self.satisfaction - 0.05)
+            self.satisfaction = self._clamp(self.satisfaction - 0.05)
             return {
                 "response": "I'm not sure what you're trying to do. Can you clarify?",
                 "facts_discovered": {},
@@ -188,7 +188,7 @@ class CustomerSimulator:
         delta = 0.0
         if self._question_count > 5:
             delta = -0.05
-            self.satisfaction = max(0.1, self.satisfaction + delta)
+            self.satisfaction = self._clamp(self.satisfaction + delta)
 
         return {
             "response": response_text,
@@ -212,7 +212,7 @@ class CustomerSimulator:
                 facts_discovered[step] = True
                 response = self._pick_response_for_step(step)
                 delta = 0.05
-                self.satisfaction = min(1.0, self.satisfaction + delta)
+                self.satisfaction = self._clamp(self.satisfaction + delta)
                 return {
                     "response": response,
                     "facts_discovered": facts_discovered,
@@ -221,7 +221,7 @@ class CustomerSimulator:
 
         # No matching step — mild penalty
         delta = -0.05
-        self.satisfaction = max(0.1, self.satisfaction + delta)
+        self.satisfaction = self._clamp(self.satisfaction + delta)
         resp = _CUSTOMER_RESPONSES.get(self.issue_type, {})
         generic = resp.get("generic", ["Okay, let me try that..."])
         return {
@@ -237,7 +237,7 @@ class CustomerSimulator:
         if all_done:
             self.resolved = True
             self.resolution_status = "resolved"
-            self.satisfaction = min(1.0, self.satisfaction + 0.1)
+            self.satisfaction = self._clamp(self.satisfaction + 0.1)
             return {
                 "response": "Thank you so much! My issue is completely resolved. Great support!",
                 "facts_discovered": {"ticket_closed": True},
@@ -246,7 +246,7 @@ class CustomerSimulator:
         else:
             # Premature close — big satisfaction penalty
             delta = -0.2
-            self.satisfaction = max(0.1, self.satisfaction + delta)
+            self.satisfaction = self._clamp(self.satisfaction + delta)
             pending = [s for s in self.required_steps if s not in self.completed_steps]
             return {
                 "response": (
@@ -370,7 +370,11 @@ class CustomerSimulator:
     def _update_progress(self):
         done = len(self.completed_steps)
         total = len(self.required_steps)
-        self.progress = done / total if total > 0 else 0.0
+        self.progress = self._clamp(done / total if total > 0 else 0.0)
+
+    def _clamp(self, value: float) -> float:
+        """Clamp a value strictly within (0, 1)."""
+        return max(0.01, min(0.99, value))
 
     def _pick_response_for_step(self, step: str) -> str:
         resp = _CUSTOMER_RESPONSES.get(self.issue_type, {})

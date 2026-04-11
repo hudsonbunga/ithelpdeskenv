@@ -128,7 +128,7 @@ def test_step_adds_to_history(env_easy):
 def test_reward_bounds_all_tasks(env_all):
     for _ in range(5):
         _, reward, _, _, _ = env_all.step({"type": "ask", "content": "test"})
-        assert 0.0 <= reward <= 1.0, f"Reward out of bounds: {reward}"
+        assert 0.0 < reward < 1.0, f"Reward out of bounds: {reward}"
 
 
 def test_reward_on_resolution(env_easy):
@@ -161,7 +161,7 @@ def test_all_difficulties_step():
         obs, reward, terminated, truncated, info = env.step(
             {"type": "ask", "content": "Can you describe the issue?"}
         )
-        assert 0.0 <= reward <= 1.0
+        assert 0.0 < reward < 1.0
 
 
 # --------------------------------------------------------------------------
@@ -207,7 +207,7 @@ def test_customer_respond_premature_close():
 def test_customer_progress_updates():
     sim = CustomerSimulator("easy")
     sim.reset()
-    assert sim.progress == 0.0
+    assert sim.progress == 0.01
     sim.respond({"type": "action", "content": "verify identity"})
     assert sim.progress > 0.0
 
@@ -219,8 +219,8 @@ def test_customer_get_state():
     assert "issue_type" in state
     assert "progress" in state
     assert "satisfaction" in state
-    assert 0.0 <= state["satisfaction"] <= 1.0
-    assert 0.0 <= state["progress"] <= 1.0
+    assert 0.0 < state["satisfaction"] < 1.0
+    assert 0.0 < state["progress"] < 1.0
 
 
 # --------------------------------------------------------------------------
@@ -231,7 +231,7 @@ def test_invalid_action_type(env_easy):
     obs, reward, terminated, truncated, info = env_easy.step(
         {"type": "invalid_type", "content": "what?"}
     )
-    assert 0.0 <= reward <= 1.0
+    assert 0.0 < reward < 1.0
     assert not terminated
 
 

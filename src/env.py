@@ -134,7 +134,7 @@ class ITHelpdeskEnv(gym.Env):
             "resolution_status":  self.customer.resolution_status,
             "completed_steps":    list(self.customer.completed_steps),
             "facts_known":        len(self.diagnosed_info),
-            "satisfaction":       round(self.customer.satisfaction, 3),
+            "satisfaction":       round(max(0.01, min(0.99, self.customer.satisfaction)), 3),
             "step_count":         self.step_count,
         }
 
@@ -199,7 +199,7 @@ class ITHelpdeskEnv(gym.Env):
             weights["satisfaction"] * satisfaction_score
         )
 
-        return round(min(0.9999, max(0.0001, reward)), 4)
+        return round(min(0.99, max(0.01, reward)), 4)
 
     def render(self, mode: str = "human") -> Optional[str]:
         """Render the current conversation state."""

@@ -338,7 +338,7 @@ def run_demo(task_level: str, max_steps: int = MAX_STEPS,
         print(f"[Heuristic Agent] issue={issue_type}")
 
     print(f"Customer: {obs['initial_message']}\n")
-    history = [{"step": 0, "action": None, "reward": 0.0}]
+    history = [{"step": 0, "action": None, "reward": 0.01}]
 
     for step_num in range(1, max_steps + 1):
         action = agent.next_action(obs)
